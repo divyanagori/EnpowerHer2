@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create & Remove Paragraphs</title>
+</head>
+<body>
+
+  <!-- Buttons -->
+  <button id="addBtn">Add Paragraph</button>
+  <button id="removeBtn">Remove Last Paragraph</button>
+
+  <!-- Div where paragraphs will be added -->
+  <div id="container"></div>
+
+  <script>
+    const container = document.getElementById("container");  
+
+    // Add paragraph on button click
+    document.getElementById("addBtn").addEventListener("click", function() {
+      const para = document.createElement("p");          // create <p>
+      para.textContent = "This is a new paragraph.";     // add text inside paragraph
+      container.appendChild(para);                       // append to div
+    });
+
+    // Remove last added paragraph on button click
+    document.getElementById("removeBtn").addEventListener("click", function() {
+      if (container.lastChild) {                         // remove only if element exists
+        container.removeChild(container.lastChild);
+      }
+    });
+  </script>
+
+</body>
+</html>

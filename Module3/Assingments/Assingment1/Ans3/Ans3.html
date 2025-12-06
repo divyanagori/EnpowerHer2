@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enhanced Todo List</title>
+<style>
+  body { font-family: Arial; margin: 20px; }
+  .completed { text-decoration: line-through; color: grey; }
+  li { margin: 8px 0; display: flex; justify-content: space-between; align-items: center; }
+  button { margin-left: 10px; }
+</style>
+</head>
+<body>
+
+<h2>Enhanced Todo List</h2>
+
+<!-- Input Field -->
+<input type="text" id="taskInput" placeholder="Enter a task...">
+<button id="addBtn">Add Task</button>
+<br><br>
+
+<!-- Search Box -->
+<input type="text" id="searchBox" placeholder="Search task...">
+
+<!-- Task List -->
+<ul id="taskList"></ul>
+
+<script>
+  let tasks = JSON.parse(localStorage.getItem("todos")) || []; // Load existing tasks
+
+  // Display tasks dynamically
+  function displayTasks(filteredTasks = tasks) {
+    const list = document.getElementById("taskList");
+    list.innerHTML = "";
+
+    filteredTasks.forEach(task => {
+      const li = document.createElement("li");
+      li.className = task.completed ? "completed" : "";
+
+      // Task text
+      const span = document.createElement("span");
+      span.textContent = task.text;
+
+      // Toggle complete button
+      const completeBtn = document.createElement("button");
+      completeBtn.textContent = task.completed ? "Undo" : "Done";
+      completeBtn.onclick = () => toggleComplete(task.id);
+
+      // Delete button
+      const deleteBtn = document.createElement("button");
+      deleteBtn.textContent = "Delete";
+      deleteBtn.onclick = () => deleteTask(task.id);
+
+      li.append(span, completeBtn, deleteBtn);
+      list.appendChild(li);
+    });
+  }
+
+  // Add task
+  document.getElementById("addBtn").addEventListener("click", function () {
+    const text = document.getElementById("taskInput").value.trim();
+    if (text === "") return alert("Please enter a task");
+
+    const newTask = {
+      id: Date.now(),       // Unique ID
+      text: text,
+      completed: false
+    };
+
+    tasks.push(newTask);
+    saveTasks();
+    displayTasks();
+    document.getElementById("taskInput").value = ""; // clear input
+  });
+
+  // Toggle completion
+  function toggleComplete(id) {
+    tasks = tasks.map(task =>
+      task.id === id ? { ...task, completed: !task.completed } : task
+    );
+    saveTasks();
+    displayTasks();
+  }
+
+  // Delete task
+  function deleteTask(id) {
+    tasks = tasks.filter(task => task.id !== id);
+    saveTasks();
+    displayTasks();
+  }
+
+  // Save to localStorage
+  function saveTasks() {
+    localStorage.setItem("todos", JSON.stringify(tasks));
+  }
+
+  // Search functionality
+  document.getElementById("searchBox").addEventListener("input", function () {
+    const keyword = this.value.toLowerCase();
+    const filtered = tasks.filter(task => task.text.toLowerCase().includes(keyword));
+    displayTasks(filtered);
+  });
+
+  // Show tasks on page load
+  displayTasks();
+</script>
+
+</body>
+</html>
