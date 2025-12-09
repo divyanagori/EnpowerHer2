@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Book Manager - Firebase</title>
+  <style>
+    :root{--bg:#f6f7fb;--card:#fff;--accent:#4f46e5;--muted:#6b7280}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;background:var(--bg);color:#111}
+    .app{display:flex;min-height:100vh}
+    /* Sidebar */
+    .sidebar{width:320px;padding:24px;background:#fff;border-right:1px solid #e6e9f0;box-shadow:0 1px 4px rgba(15,23,42,0.03)}
+    .site-title{font-weight:700;color:var(--accent);margin-bottom:12px;font-size:20px}
+    label{display:block;font-size:13px;color:var(--muted);margin-top:12px}
+    input[type="text"], input[type="number"]{width:100%;padding:10px;border:1px solid #e6e9f0;border-radius:8px;margin-top:6px;font-size:14px}
+    button.primary{display:inline-block;margin-top:14px;padding:10px 14px;background:var(--accent);color:#fff;border:none;border-radius:8px;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid #e6e9f0;padding:8px 10px;border-radius:8px;cursor:pointer;margin-left:8px}
+    .main{flex:1;padding:24px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+    .card{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 6px 18px rgba(16,24,40,0.06);display:flex;flex-direction:column}
+    .cover{height:180px;border-radius:8px;background:#f3f4f6;background-size:cover;background-position:center;margin-bottom:12px}
+    .title{font-weight:600;margin-bottom:6px}
+    .meta{color:var(--muted);font-size:13px;margin-bottom:12px}
+    .card-actions{margin-top:auto;display:flex;gap:8px;flex-wrap:wrap}
+    .btn{padding:8px 10px;border-radius:8px;border:none;cursor:pointer;font-size:13px}
+    .btn.update{background:#fef3c7;color:#92400e}
+    .btn.delete{background:#fee2e2;color:#991b1b}
+    .btn.view{background:#eef2ff;color:var(--accent)}
+    /* Modal */
+    .modal-back{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:50}
+    .modal{background:#fff;padding:18px;border-radius:12px;max-width:520px;width:92%}
+    /* Responsive */
+    @media (max-width:960px){.grid{grid-template-columns:repeat(2,1fr)}.sidebar{display:none}}
+    @media (max-width:600px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="site-title">Book Manager</div>
+      <form id="addBookForm">
+        <label>Title<input required type="text" id="title" /></label>
+        <label>Author<input required type="text" id="author" /></label>
+        <label>Price (₹)<input required type="number" step="0.01" id="price" /></label>
+        <label>Image URL<input required type="text" id="imageURL" placeholder="https://..." /></label>
+        <div>
+          <button class="primary" type="submit">Add Book</button>
+          <button class="ghost" type="button" id="clearForm">Clear</button>
+        </div>
+      </form>
+
+      <hr style="margin:18px 0;border:none;border-top:1px solid #eef2ff" />
+      <div style="font-size:13px;color:var(--muted)">
+        Tip: The UI updates in realtime when books are added/updated/deleted.
+      </div>
+
+      <!-- Uncomment the button below to insert dummy books once -->
+      <!-- <button id="insertDummy" class="ghost" style="margin-top:12px">Insert Dummy Books</button> -->
+    </aside>
+
+    <main class="main">
+      <h2 style="margin:0 0 12px 0">All Books</h2>
+      <div id="booksGrid" class="grid"></div>
+    </main>
+  </div>
+
+  <!-- Modal container -->
+  <div id="modalRoot"></div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // TODO: Replace with your Firebase config
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MSG_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // Initialize
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const booksCol = db.collection('books');
+
+    // Elements
+    const booksGrid = document.getElementById('booksGrid');
+    const addBookForm = document.getElementById('addBookForm');
+    const modalRoot = document.getElementById('modalRoot');
+    const clearFormBtn = document.getElementById('clearForm');
+    // Optional Dummy data insertion button:
+    const insertDummyBtn = document.getElementById('insertDummy');
+
+    // Render single book card
+    function renderBookCard(doc) {
+      const data = doc.data();
+      const id = doc.id;
+      const card = document.createElement('div');
+      card.className = 'card';
+      const cover = document.createElement('div');
+      cover.className = 'cover';
+      cover.style.backgroundImage = `url("${data.coverImageURL || 'https://via.placeholder.com/300x180?text=No+Image'}")`;
+      const title = document.createElement('div');
+      title.className = 'title';
+      title.textContent = data.title || 'Untitled';
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = `Author: ${data.author || 'Unknown'} • Price: ₹${Number(data.price||0).toFixed(2)}`;
+
+      const actions = document.createElement('div');
+      actions.className = 'card-actions';
+
+      const updateBtn = document.createElement('button');
+      updateBtn.className = 'btn update';
+      updateBtn.textContent = 'Update Author';
+      updateBtn.onclick = async () => {
+        const newAuthor = prompt('Enter new author name:', data.author || '');
+        if (newAuthor === null) return; // cancelled
+        await booksCol.doc(id).update({ author: newAuthor });
+      };
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'btn delete';
+      deleteBtn.textContent = 'Delete';
+      deleteBtn.onclick = async () => {
+        if (!confirm(`Delete "${data.title}"?`)) return;
+        await booksCol.doc(id).delete();
+      };
+
+      const viewBtn = document.createElement('button');
+      viewBtn.className = 'btn view';
+      viewBtn.textContent = 'View Details';
+      viewBtn.onclick = () => showModal(data, id);
+
+      actions.appendChild(updateBtn);
+      actions.appendChild(deleteBtn);
+      actions.appendChild(viewBtn);
+
+      card.appendChild(cover);
+      card.appendChild(title);
+      card.appendChild(meta);
+      card.appendChild(actions);
+
+      // container wrapper so we can replace by id when updates happen
+      const wrapper = document.createElement('div');
+      wrapper.id = `book-${id}`;
+      wrapper.appendChild(card);
+      return wrapper;
+    }
+
+    // Realtime listener
+    booksCol.orderBy('title').onSnapshot(snapshot => {
+      snapshot.docChanges().forEach(change => {
+        const doc = change.doc;
+        const id = doc.id;
+        if (change.type === 'added') {
+          // append card in right place: re-render whole list for simplicity
+        }
+        if (change.type === 'modified') {
+          const existing = document.getElementById(`book-${id}`);
+          if (existing) {
+            const newCard = renderBookCard(doc);
+            existing.replaceWith(newCard);
+          }
+        }
+        if (change.type === 'removed') {
+          const existing = document.getElementById(`book-${id}`);
+          if (existing) existing.remove();
+        }
+      });
+
+      // For ordering and initial render, rebuild grid from all docs
+      // (This keeps ordering consistent and is fine for small collections)
+      booksGrid.innerHTML = '';
+      snapshot.docs.forEach(d => {
+        const node = renderBookCard(d);
+        booksGrid.appendChild(node);
+      });
+    }, err => {
+      console.error('Realtime listener error:', err);
+    });
+
+    // Add book
+    addBookForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('title').value.trim();
+      const author = document.getElementById('author').value.trim();
+      const price = parseFloat(document.getElementById('price').value) || 0;
+      const imageURL = document.getElementById('imageURL').value.trim();
+
+      if (!title || !author) { alert('Title and Author are required'); return; }
+
+      await booksCol.add({
+        title,
+        author,
+        price,
+        coverImageURL: imageURL,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      addBookForm.reset();
+    });
+
+    clearFormBtn.addEventListener('click', () => addBookForm.reset());
+
+    // Modal
+    function showModal(data, id) {
+      modalRoot.innerHTML = '';
+      const back = document.createElement('div');
+      back.className = 'modal-back';
+      back.onclick = () => modalRoot.innerHTML = '';
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      modal.onclick = (ev) => ev.stopPropagation();
+      modal.innerHTML = `
+        <div style="display:flex;gap:12px">
+          <img src="${data.coverImageURL||'https://via.placeholder.com/120x160'}" alt="" style="height:160px;border-radius:8px;object-fit:cover"/>
+          <div style="flex:1">
+            <h3 style="margin:0 0 8px 0">${escapeHtml(data.title||'Untitled')}</h3>
+            <div style="color:var(--muted);margin-bottom:8px">Author: ${escapeHtml(data.author||'Unknown')}</div>
+            <div style="font-weight:600;margin-bottom:8px">Price: ₹${Number(data.price||0).toFixed(2)}</div>
+            <div style="font-size:13px;color:var(--muted)">ID: ${id}</div>
+          </div>
+        </div>
+        <div style="text-align:right;margin-top:12px">
+          <button class="ghost" id="closeModalBtn">Close</button>
+        </div>
+      `;
+      back.appendChild(modal);
+      modalRoot.appendChild(back);
+      document.getElementById('closeModalBtn').onclick = () => modalRoot.innerHTML = '';
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+    // Optional: Insert 5 dummy books (run once, then comment out)
+    async function insertDummyBooks(){
+      const dummy = [
+        {title:'The Silent Patient', author:'Alex Michaelides', price:299.00, coverImageURL:'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=60'},
+        {title:'Atomic Habits', author:'James Clear', price:499.00, coverImageURL:'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=800&q=60'},
+        {title:'Educated', author:'Tara Westover', price:399.00, coverImageURL:'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=800&q=60'},
+        {title:'The Alchemist', author:'Paulo Coelho', price:259.00, coverImageURL:'https://images.unsplash.com/photo-1523480717985-5f7d3a1b4d9d?auto=format&fit=crop&w=800&q=60'},
+        {title:'Deep Work', author:'Cal Newport', price:349.00, coverImageURL:'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=800&q=60'}
+      ];
+      for(const b of dummy){
+        await booksCol.add({...b, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+      }
+      alert('Inserted dummy books');
+    }
+
+    // If you wanted a button to trigger insertion, uncomment these lines and the button in HTML:
+    // if (insertDummyBtn) insertDummyBtn.onclick = insertDummyBooks;
+
+    // Firestore rules note: for dev use allow read, write; for production secure with auth.
+    // End of script
+  </script>
+</body>
+</html>
