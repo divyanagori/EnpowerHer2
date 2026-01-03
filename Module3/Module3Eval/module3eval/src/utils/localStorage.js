@@ -1,7 +1,12 @@
+// utils/localStorage.js
+
+const STORAGE_KEY = "evalData";
+
 export const getData = () => {
-  return JSON.parse(localStorage.getItem("evalData")) || [];
+  const data = localStorage.getItem(STORAGE_KEY);
+  return data ? JSON.parse(data) : [];
 };
 
 export const saveData = (data) => {
-  localStorage.setItem("evalData", JSON.stringify(data));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 };

@@ -1,15 +1,27 @@
-import { useRef, useEffect } from "react";
+// components/Navbar.jsx
+import React from "react";
 
-const Navbar = () => {
-  const searchRef = useRef();
-
-  useEffect(() => {
-    searchRef.current.focus();
-  }, []);
-
+// Forward ref to allow input autofocus
+const Navbar = React.forwardRef(({ children }, ref) => {
   return (
-    <input ref={searchRef} placeholder="Search restaurant..." />
+    <nav
+      style={{
+        padding: "10px",
+        borderBottom: "1px solid #ccc",
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+      }}
+    >
+      {React.Children.map(children, (child) => {
+        // Attach ref to input only
+        if (child.type === "input") {
+          return React.cloneElement(child, { ref: ref });
+        }
+        return child;
+      })}
+    </nav>
   );
-};
+});
 
 export default Navbar;
