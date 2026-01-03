@@ -175,7 +175,7 @@ const AdminDashBoard = () => {
               }}
             >
               {filteredRestaurants.map((r) => (
-                <RestaurantCard key={r.restaurantID} {...r} />
+                <RestaurantCard key={r.restaurantID} {...r} isAdmin={true} />
               ))}
             </div>
           )}

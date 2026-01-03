@@ -1,8 +1,7 @@
 // components/RestaurantCard.jsx
 import React from "react";
 
-const RestaurantCard = ({ restaurantID, restaurantName, address, type, parkinglot, image }) => {
-  // Admin actions
+const RestaurantCard = ({ restaurantID, restaurantName, address, type, parkinglot, image, isAdmin }) => {
   const handleUpdate = () => {
     window.location.href = `/min/restaurants/update/${restaurantID}`;
   };
@@ -33,10 +32,12 @@ const RestaurantCard = ({ restaurantID, restaurantName, address, type, parkinglo
       <p>{address}</p>
       <p>Type: {type}</p>
       <p>Parking: {parkinglot ? "Yes" : "No"}</p>
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px" }}>
-        <button onClick={handleUpdate}>Update</button>
-        <button onClick={handleDelete}>Delete</button>
-      </div>
+      {isAdmin && (
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "10px" }}>
+          <button onClick={handleUpdate}>Update</button>
+          <button onClick={handleDelete}>Delete</button>
+        </div>
+      )}
     </div>
   );
 };
