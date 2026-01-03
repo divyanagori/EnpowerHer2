@@ -22,7 +22,10 @@ const UpdateRestaurant = () => {
 
   return (
     <>
-      <input value={form.restaurantName} />
+      <input
+        value={form.restaurantName}
+        onChange={e => setForm({ ...form, restaurantName: e.target.value })}
+      />
       <button onClick={update}>Update</button>
     </>
   );

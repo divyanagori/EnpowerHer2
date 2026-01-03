@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { getData, saveData } from "../utils/localStorage";
 import RestaurantCard from "../components/RestaurantCard";
 import Navbar from "../components/Navbar";
@@ -22,13 +22,16 @@ const AdminDashboard = () => {
 
     const newData = [
       ...data,
-      { ...form, restaurantID: Date.now(), parkinglot: form.parkinglot === "true" },
+      {
+        ...form,
+        restaurantID: Date.now(),
+        parkinglot: form.parkinglot === "true",
+      },
     ];
 
     saveData(newData);
     setData(newData);
-    alert("Restaurant Added");
-    setForm({ ...form, restaurantName: "", address: "" });
+    alert("Restaurant added");
   };
 
   return (

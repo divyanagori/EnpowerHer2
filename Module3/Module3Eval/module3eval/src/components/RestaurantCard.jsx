@@ -9,7 +9,10 @@ const RestaurantCard = (props) => {
 
   const deleteRestaurant = () => {
     if (!window.confirm("Are you sure you want to delete?")) return;
-    const updated = getData().filter(r => r.restaurantID !== props.restaurantID);
+
+    const updated = getData().filter(
+      r => r.restaurantID !== props.restaurantID
+    );
     saveData(updated);
     alert("Deleted successfully");
     window.location.reload();
